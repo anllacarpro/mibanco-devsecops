@@ -1,0 +1,177 @@
+name: CI/CD Pipeline - Mibanco DevSecOps Challenge
+
+# Trunk-based development: main branch is the source of truth
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  TF_WORKDIR: ./terraform
+  IMAGE_NAME: hola
+  LOCATION: eastus
+  AZURE_CONTAINER_REGISTRY: mibancodevsecopstdb2eacr.azurecr.io
+  RESOURCE_GROUP: mibanco-devsecops-tdb2e-rg
+  CLUSTER_NAME: mibanco-devsecops-tdb2e-aks
+
+jobs:
+  # Build and test stage
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build container image
+        run: |
+          docker build ./app -t ${{ env.AZURE_CONTAINER_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          docker build ./app -t ${{ env.AZURE_CONTAINER_REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+
+      - name: Log in to Azure Container Registry
+        run: |
+          az acr login --name ${AZURE_CONTAINER_REGISTRY%%.azurecr.io}
+
+      - name: Push container image to registry
+        run: |
+          docker push ${{ env.AZURE_CONTAINER_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          # Tag as latest only for main branch
+          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            docker push ${{ env.AZURE_CONTAINER_REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          fi
+
+  # Infrastructure provisioning (Terraform)
+  infrastructure:
+    if: github.ref == 'refs/heads/main' # Only deploy infrastructure from main
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Init
+        working-directory: ${{ env.TF_WORKDIR }}
+        run: terraform init
+
+      - name: Terraform Plan
+        working-directory: ${{ env.TF_WORKDIR }}
+        run: terraform plan -var="subscription_id=${{ secrets.AZURE_SUBSCRIPTION_ID }}" -var="image_tag=${{ github.sha }}"
+
+      - name: Terraform Apply
+        working-directory: ${{ env.TF_WORKDIR }}
+        run: terraform apply -auto-approve -var="subscription_id=${{ secrets.AZURE_SUBSCRIPTION_ID }}" -var="image_tag=${{ github.sha }}"
+
+  # Kubernetes deployment using manifests
+  deploy:
+    if: github.ref == 'refs/heads/main' # Only deploy from main branch
+    needs: [build, infrastructure]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Get AKS credentials
+        run: |
+          az aks get-credentials --resource-group ${{ env.RESOURCE_GROUP }} --name ${{ env.CLUSTER_NAME }} --overwrite-existing
+
+      - name: Update deployment image tag
+        run: |
+          # Update the image tag in deployment.yml
+          sed -i "s|image: ${{ env.AZURE_CONTAINER_REGISTRY }}/${{ env.IMAGE_NAME }}:.*|image: ${{ env.AZURE_CONTAINER_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}|" k8s-manifests/deployment.yml
+
+      - name: Deploy to Kubernetes
+        run: |
+          kubectl apply -f k8s-manifests/namespace.yml
+          kubectl apply -f k8s-manifests/deployment.yml
+          kubectl apply -f k8s-manifests/service.yml
+          kubectl apply -f k8s-manifests/hpa.yml
+          kubectl apply -f k8s-manifests/ingress.yml
+
+      - name: Wait for rollout
+        run: |
+          kubectl rollout status deployment/hola-app -n hola --timeout=300s
+
+  # Validation stage - Required by challenge
+  validate:
+    if: github.ref == 'refs/heads/main'
+    needs: [deploy]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Get AKS credentials
+        run: |
+          az aks get-credentials --resource-group ${{ env.RESOURCE_GROUP }} --name ${{ env.CLUSTER_NAME }} --overwrite-existing
+
+      - name: Validate pods deployment (Required by challenge)
+        run: |
+          echo "=== PODS VALIDATION ==="
+          kubectl get pods -n hola -o wide
+          echo ""
+          
+      - name: Validate ingress (Required by challenge)
+        run: |
+          echo "=== INGRESS VALIDATION ==="
+          kubectl get ingress -n hola -o wide
+          echo ""
+          
+      - name: Validate all resources
+        run: |
+          echo "=== DEPLOYMENT STATUS ==="
+          kubectl get deployment -n hola
+          echo ""
+          echo "=== SERVICES ==="
+          kubectl get svc -n hola
+          echo ""
+          echo "=== HPA STATUS ==="
+          kubectl get hpa -n hola
+          echo ""
+          
+      - name: Test application endpoint
+        run: |
+          echo "=== TESTING APPLICATION ==="
+          # Get ingress IP
+          INGRESS_IP=$(kubectl get ingress hola-ingress -n hola -o jsonpath='{.status.loadBalancer.ingress[0].ip}' || echo "")
+          if [ -n "$INGRESS_IP" ]; then
+            echo "Testing with Ingress IP: $INGRESS_IP"
+            for i in {1..5}; do
+              if curl -f "http://app.$INGRESS_IP.nip.io/" --max-time 10; then
+                echo ""
+                echo "✅ Application is responding correctly!"
+                break
+              else
+                echo "Attempt $i failed, retrying..."
+                sleep 10
+              fi
+            done
+          else
+            echo "No external IP yet, testing via port-forward..."
+            kubectl port-forward service/hola-svc 8080:80 -n hola &
+            sleep 5
+            curl -f http://localhost:8080/ || echo "Port-forward test failed"
+            pkill -f "kubectl port-forward"
+          fi
