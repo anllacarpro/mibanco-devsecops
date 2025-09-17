@@ -3,34 +3,25 @@
 # LinkedIn: https://www.linkedin.com/in/miguel-alarcon-llanos/
 # Challenge: Lead DevSecOps Position
 
-resource "random_string" "suffix" {
-  length  = 5
-  upper   = false
-  special = false
-}
 
-locals {
-  name  = "${var.project_name}-${random_string.suffix.result}"
-}
-
-resource "azurerm_resource_group" "rg" {
-  name     = "${local.name}-rg"
-  location = var.location
+# Referencia a un resource group existente
+data "azurerm_resource_group" "rg" {
+  name = var.resource_group_name
 }
 
 resource "azurerm_container_registry" "acr" {
-  name                = replace("${local.name}acr", "-", "")
-  resource_group_name = azurerm_resource_group.rg.name
-  location            = var.location
+  name                = replace("${var.project_name}acr", "-", "")
+  resource_group_name = data.azurerm_resource_group.rg.name
+  location            = data.azurerm_resource_group.rg.location
   sku                 = "Basic"
   admin_enabled       = true
 }
 
 resource "azurerm_kubernetes_cluster" "aks" {
-  name                = "${local.name}-aks"
-  location            = var.location
-  resource_group_name = azurerm_resource_group.rg.name
-  dns_prefix          = "${local.name}-dns"
+  name                = "${var.project_name}-aks"
+  location            = data.azurerm_resource_group.rg.location
+  resource_group_name = data.azurerm_resource_group.rg.name
+  dns_prefix          = "${var.project_name}-dns"
 
   default_node_pool {
     name       = "nodepool1"
