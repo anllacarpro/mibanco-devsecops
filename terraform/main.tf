@@ -60,6 +60,9 @@ resource "helm_release" "ingress_nginx" {
     name  = "controller.service.type"
     value = "LoadBalancer"
   }
+
+  timeout = 600
+  wait    = true
 }
 
 # Namespace for the app
