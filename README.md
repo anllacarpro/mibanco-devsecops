@@ -1,5 +1,9 @@
 # Challenge Técnico: Lead DevSecOps - Mibanco
 
+**Desarrollado por:** Miguel Angel Alarcon Llanos  
+**LinkedIn:** [miguel-alarcon-llanos](https://www.linkedin.com/in/miguel-alarcon-llanos/)  
+**Challenge:** Mibanco DevSecOps Lead Position
+
 Este proyecto implementa una solución completa de CI/CD usando GitHub Actions, Terraform, Azure Kubernetes Service (AKS) y metodología trunk-based development.
 
 ## 📋 Requisitos Completados
@@ -246,6 +250,14 @@ hola-ingress   <none>   app.4.156.246.56.nip.io   4.156.246.56   80      31m
 🔗 LinkedIn: [https://www.linkedin.com/in/miguel-alarcon-llanos/](https://www.linkedin.com/in/miguel-alarcon-llanos/)  
 📧 Contacto: Disponible via LinkedIn  
 🎯 **Posición**: Candidato para Lead DevSecOps - Mibanco
+
+### 🏆 Skills Demostradas en este Challenge
+- ✅ **Infrastructure as Code** (Terraform)
+- ✅ **Container Orchestration** (Kubernetes/AKS)
+- ✅ **CI/CD Pipelines** (GitHub Actions)
+- ✅ **Cloud Computing** (Microsoft Azure)
+- ✅ **DevSecOps Practices** (Security + Automation)
+- ✅ **Trunk-based Development** (Git workflows)
 
 ---
 

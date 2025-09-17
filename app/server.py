@@ -1,3 +1,8 @@
+# Mibanco DevSecOps Challenge - Flask Application
+# Author: Miguel Angel Alarcon Llanos
+# LinkedIn: https://www.linkedin.com/in/miguel-alarcon-llanos/
+# Challenge: Lead DevSecOps Position
+
 from flask import Flask
 app = Flask(__name__)
 

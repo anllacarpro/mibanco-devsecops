@@ -1,3 +1,8 @@
+# Mibanco DevSecOps Challenge - Infrastructure as Code
+# Author: Miguel Angel Alarcon Llanos
+# LinkedIn: https://www.linkedin.com/in/miguel-alarcon-llanos/
+# Challenge: Lead DevSecOps Position
+
 resource "random_string" "suffix" {
   length  = 5
   upper   = false

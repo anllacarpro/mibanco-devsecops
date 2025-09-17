@@ -1,5 +1,8 @@
 name: CI/CD Pipeline - Mibanco DevSecOps Challenge
 
+# Author: Miguel Angel Alarcon Llanos
+# LinkedIn: https://www.linkedin.com/in/miguel-alarcon-llanos/
+# Challenge: Mibanco DevSecOps Lead Position
 # Trunk-based development: main branch is the source of truth
 on:
   push:
