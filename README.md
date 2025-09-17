@@ -247,14 +247,6 @@ hola-ingress   <none>   app.4.156.246.56.nip.io   4.156.246.56   80      31m
 📧 Contacto: Disponible via LinkedIn  
 🎯 **Posición**: Candidato para Lead DevSecOps - Mibanco
 
-### 🏆 Skills Demostradas en este Challenge
-- ✅ **Infrastructure as Code** (Terraform)
-- ✅ **Container Orchestration** (Kubernetes/AKS)
-- ✅ **CI/CD Pipelines** (GitHub Actions)
-- ✅ **Cloud Computing** (Microsoft Azure)
-- ✅ **DevSecOps Practices** (Security + Automation)
-- ✅ **Trunk-based Development** (Git workflows)
-
 ---
 
 > ✅ **Estado**: Todos los requisitos del challenge completados exitosamente  
