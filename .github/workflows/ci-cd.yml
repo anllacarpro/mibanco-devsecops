@@ -115,6 +115,21 @@ jobs:
         run: |
           kubectl rollout status deployment/hola-app -n hola --timeout=300s
 
+      - name: Debug on rollout failure
+        if: failure()
+        run: |
+          echo "=== DEBUG: PODS STATUS ==="
+          kubectl get pods -n hola -o wide || true
+          echo "\n=== DEBUG: POD EVENTS ==="
+          for pod in $(kubectl get pods -n hola -o jsonpath='{.items[*].metadata.name}'); do
+            echo "\nEvents for pod: $pod"
+            kubectl describe pod $pod -n hola || true
+            echo "\nLogs for pod: $pod"
+            kubectl logs $pod -n hola --tail=50 || true
+          done
+          echo "\n=== DEBUG: DEPLOYMENT EVENTS ==="
+          kubectl describe deployment hola-app -n hola || true
+
   # Validation stage - Required by challenge
   validate:
     if: github.ref == 'refs/heads/main'
