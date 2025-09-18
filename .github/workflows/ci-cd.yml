@@ -49,25 +49,14 @@ jobs:
             -var="image_tag=${{ github.sha }}" \
             -var="resource_group_name=${{ env.RESOURCE_GROUP }}"
 
-
-      # - name: Terraform Import ACR if needed
-      #   working-directory: ${{ env.TF_WORKDIR }}
-      #   run: |
-      #     if ! terraform state show azurerm_container_registry.acr > /dev/null 2>&1; then
-      #       echo "Importando ACR existente al estado de Terraform..."
-      #       acr_name=$(echo "${AZURE_CONTAINER_REGISTRY}" | sed 's/\.azurecr\.io$//')
-      #       terraform import \
-      #         -var="resource_group_name=${RESOURCE_GROUP}" \
-      #         azurerm_container_registry.acr \
-      #         "/subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/${RESOURCE_GROUP}/providers/Microsoft.ContainerRegistry/registries/$acr_name"
-      #     else
-      #       echo "ACR ya gestionado por Terraform."
-      #     fi
-
       - name: Terraform Apply (infra base)
         working-directory: ${{ env.TF_WORKDIR }}
         run: |
           terraform apply -auto-approve \
+            -target=azurerm_container_registry.acr \
+            -target=azurerm_kubernetes_cluster.aks \
+            -target=azurerm_role_assignment.acr_pull \
+            -target=helm_release.ingress_nginx \
             -var="subscription_id=${{ secrets.AZURE_SUBSCRIPTION_ID }}" \
             -var="image_tag=${{ github.sha }}" \
             -var="resource_group_name=${{ env.RESOURCE_GROUP }}"
@@ -136,10 +125,17 @@ jobs:
             -var="image_tag=${{ github.sha }}" \
             -var="resource_group_name=${{ env.RESOURCE_GROUP }}"
 
+
       - name: Terraform Apply (infra app)
         working-directory: ${{ env.TF_WORKDIR }}
         run: |
           terraform apply -auto-approve \
+            -target=kubernetes_namespace.app \
+            -target=kubernetes_deployment.app \
+            -target=kubernetes_service_v1.svc \
+            -target=kubernetes_horizontal_pod_autoscaler_v2.hpa \
+            -target=data.kubernetes_service.nginx_ingress \
+            -target=kubernetes_ingress_v1.ing \
             -var="subscription_id=${{ secrets.AZURE_SUBSCRIPTION_ID }}" \
             -var="image_tag=${{ github.sha }}" \
             -var="resource_group_name=${{ env.RESOURCE_GROUP }}"
