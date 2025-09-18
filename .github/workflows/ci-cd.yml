@@ -45,9 +45,6 @@ jobs:
         working-directory: ${{ env.TF_WORKDIR }}
         run: |
           terraform plan \
-            -target=azurerm_resource_group.rg \
-            -target=azurerm_container_registry.acr \
-            -target=azurerm_kubernetes_cluster.aks \
             -var="subscription_id=${{ secrets.AZURE_SUBSCRIPTION_ID }}" \
             -var="image_tag=${{ github.sha }}" \
             -var="resource_group_name=${{ env.RESOURCE_GROUP }}"
@@ -56,9 +53,6 @@ jobs:
         working-directory: ${{ env.TF_WORKDIR }}
         run: |
           terraform apply -auto-approve \
-            -target=azurerm_resource_group.rg \
-            -target=azurerm_container_registry.acr \
-            -target=azurerm_kubernetes_cluster.aks \
             -var="subscription_id=${{ secrets.AZURE_SUBSCRIPTION_ID }}" \
             -var="image_tag=${{ github.sha }}" \
             -var="resource_group_name=${{ env.RESOURCE_GROUP }}"
