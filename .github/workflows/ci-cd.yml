@@ -16,7 +16,7 @@ env:
   LOCATION: eastus
   AZURE_CONTAINER_REGISTRY: mibancodevsecopsacr.azurecr.io
   RESOURCE_GROUP: mibanco-devsecops-tdb2e-rg
-  CLUSTER_NAME: mibanco-devsecops-tdb2e-aks
+  CLUSTER_NAME: mibanco-devsecops-aks
 
 jobs:
 
@@ -159,6 +159,7 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
+      # Obtain AKS credentials to enable kubectl commands for deployment to the cluster
       - name: Get AKS credentials
         run: |
           az aks get-credentials --resource-group ${{ env.RESOURCE_GROUP }} --name ${{ env.CLUSTER_NAME }} --overwrite-existing
