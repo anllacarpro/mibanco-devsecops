@@ -20,9 +20,10 @@ env:
 
 jobs:
 
-  # Infrastructure provisioning (Terraform)
-  infrastructure:
-    if: github.ref == 'refs/heads/main' # Only deploy infrastructure from main
+
+  # Infraestructura base: resource group, ACR, AKS
+  infra_base:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -40,26 +41,33 @@ jobs:
         working-directory: ${{ env.TF_WORKDIR }}
         run: terraform init
 
-      - name: Terraform Plan
+      - name: Terraform Plan (infra base)
         working-directory: ${{ env.TF_WORKDIR }}
         run: |
           terraform plan \
+            -target=azurerm_resource_group.rg \
+            -target=azurerm_container_registry.acr \
+            -target=azurerm_kubernetes_cluster.aks \
             -var="subscription_id=${{ secrets.AZURE_SUBSCRIPTION_ID }}" \
             -var="image_tag=${{ github.sha }}" \
             -var="resource_group_name=${{ env.RESOURCE_GROUP }}"
 
-      - name: Terraform Apply
+      - name: Terraform Apply (infra base)
         working-directory: ${{ env.TF_WORKDIR }}
         run: |
           terraform apply -auto-approve \
+            -target=azurerm_resource_group.rg \
+            -target=azurerm_container_registry.acr \
+            -target=azurerm_kubernetes_cluster.aks \
             -var="subscription_id=${{ secrets.AZURE_SUBSCRIPTION_ID }}" \
             -var="image_tag=${{ github.sha }}" \
             -var="resource_group_name=${{ env.RESOURCE_GROUP }}"
 
-  # Build and push Docker image after infrastructure is ready
+
+  # Build and push Docker image después de infra_base
   build:
     if: github.ref == 'refs/heads/main'
-    needs: infrastructure
+    needs: infra_base
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -89,6 +97,43 @@ jobs:
           if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
             docker push ${{ env.AZURE_CONTAINER_REGISTRY }}/${{ env.IMAGE_NAME }}:latest
           fi
+
+  # Infraestructura app: deployment, service, ingress, etc
+  infra_app:
+    if: github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Init
+        working-directory: ${{ env.TF_WORKDIR }}
+        run: terraform init
+
+      - name: Terraform Plan (infra app)
+        working-directory: ${{ env.TF_WORKDIR }}
+        run: |
+          terraform plan \
+            -var="subscription_id=${{ secrets.AZURE_SUBSCRIPTION_ID }}" \
+            -var="image_tag=${{ github.sha }}" \
+            -var="resource_group_name=${{ env.RESOURCE_GROUP }}"
+
+      - name: Terraform Apply (infra app)
+        working-directory: ${{ env.TF_WORKDIR }}
+        run: |
+          terraform apply -auto-approve \
+            -var="subscription_id=${{ secrets.AZURE_SUBSCRIPTION_ID }}" \
+            -var="image_tag=${{ github.sha }}" \
+            -var="resource_group_name=${{ env.RESOURCE_GROUP }}"
 
   # Kubernetes deployment using manifests
   deploy:
