@@ -37,6 +37,11 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
 
+      - name: Export ARM_ACCESS_KEY for backend
+        run: |
+          ARM_ACCESS_KEY=$(az storage account keys list --resource-group mibanco-devsecops-tfstate --account-name mibancotfstate12345 --query [0].value -o tsv)
+          echo "ARM_ACCESS_KEY=$ARM_ACCESS_KEY" >> $GITHUB_ENV
+
       - name: Terraform Init
         working-directory: ${{ env.TF_WORKDIR }}
         run: terraform init

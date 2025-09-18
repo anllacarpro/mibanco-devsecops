@@ -106,7 +106,30 @@ develop branch ──┘                     ↓                    ↓
 
 ## 🔧 Configuración Inicial
 
-### 1. Secrets de GitHub
+
+### 1. Backend remoto de Terraform (Azure Storage)
+
+Para que el estado de Terraform se comparta entre jobs del pipeline, crea un Storage Account y un contenedor en Azure:
+
+```bash
+az storage account create -n <NOMBRE_STORAGE_ACCOUNT> -g <NOMBRE_RG_STORAGE> -l eastus --sku Standard_LRS
+az storage container create --account-name <NOMBRE_STORAGE_ACCOUNT> --name tfstate
+```
+
+Luego, configura el backend en `terraform/backend.tf`:
+
+```hcl
+terraform {
+   backend "azurerm" {
+      resource_group_name  = "<NOMBRE_RG_STORAGE>"
+      storage_account_name = "<NOMBRE_STORAGE_ACCOUNT>"
+      container_name       = "tfstate"
+      key                  = "terraform.tfstate"
+   }
+}
+```
+
+### 2. Secrets de GitHub
 
 Configure los siguientes secrets en su repositorio de GitHub:
 
@@ -115,7 +138,7 @@ AZURE_CREDENTIALS       # Service Principal JSON
 AZURE_SUBSCRIPTION_ID   # ID de suscripción Azure
 ```
 
-### 2. Azure Service Principal
+### 3. Azure Service Principal
 
 ```bash
 az ad sp create-for-rbac --name "github-actions-sp" \
@@ -124,7 +147,7 @@ az ad sp create-for-rbac --name "github-actions-sp" \
   --sdk-auth
 ```
 
-### 3. Branch Protection Rules
+### 4. Branch Protection Rules
 
 ```bash
 # Instalar GitHub CLI
