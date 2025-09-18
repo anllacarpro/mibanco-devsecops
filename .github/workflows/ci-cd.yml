@@ -18,6 +18,10 @@ env:
   RESOURCE_GROUP: mibanco-devsecops-tdb2e-rg
   CLUSTER_NAME: mibanco-devsecops-aks
 
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+  
 jobs:
 
 
