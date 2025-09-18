@@ -279,3 +279,54 @@ hola-ingress   <none>   app.4.156.246.56.nip.io   4.156.246.56   80      31m
 > ✅ **Estado**: Todos los requisitos del challenge completados exitosamente  
 > 🎯 **Endpoint**: `http://app.{INGRESS_IP}.nip.io` → "Hola Mibanco"  
 > 👨‍💻 **Desarrollado por**: Miguel Angel Alarcon Llanos
+El pipeline CI/CD está completamente automatizado usando GitHub Actions y sigue estos pasos:
+
+### 1. Infraestructura Base (`infra_base`)
+- Ejecuta solo en la rama `main`.
+- Inicializa y aplica Terraform para crear/actualizar:
+   - Resource Group
+   - Azure Container Registry (ACR)
+   - Azure Kubernetes Service (AKS)
+   - Role Assignment (AcrPull)
+   - Ingress Controller (Helm)
+- Usa backend remoto en Azure Storage para compartir el estado entre jobs.
+- Exporta `ARM_ACCESS_KEY` antes de `terraform init` para acceso seguro al backend.
+
+### 2. Build y Push de Imagen (`build`)
+- Ejecuta después de `infra_base`.
+- Construye la imagen Docker de la app.
+- Hace push a ACR con tag `latest` y el SHA del commit.
+
+### 3. Infraestructura App (`infra_app`)
+- Ejecuta después de `build`.
+- Aplica solo los recursos de la app en Kubernetes vía Terraform:
+   - Namespace
+   - Deployment
+   - Service
+   - HPA
+   - Ingress
+- Usa el backend remoto para mantener consistencia de estado.
+
+### 4. Despliegue a Kubernetes (`deploy`)
+- Ejecuta después de `infra_app` y `build`.
+- Obtiene credenciales de AKS (`az aks get-credentials`).
+- Actualiza el tag de la imagen en el manifiesto de deployment.
+- Aplica todos los manifiestos K8s (`kubectl apply`).
+- Espera el rollout exitoso del deployment.
+- Si falla, ejecuta pasos de debug automáticos (describe, logs, eventos).
+
+### 5. Validación Automática (`validate`)
+- Ejecuta después de `deploy`.
+- Obtiene credenciales de AKS.
+- Valida:
+   - Pods (`kubectl get pods -n hola`)
+   - Ingress (`kubectl get ingress -n hola`)
+   - Todos los recursos (`kubectl get all -n hola`)
+- Testea el endpoint vía Ingress y, si no hay IP, vía port-forward.
+
+---
+**Notas clave:**
+- El pipeline es idempotente: solo crea/actualiza lo necesario.
+- La infraestructura base y la app están estrictamente separadas por jobs y targets de Terraform.
+- El estado de Terraform se comparte entre jobs usando backend remoto y ARM_ACCESS_KEY.
+- El despliegue y validación son 100% automáticos y reproducibles.

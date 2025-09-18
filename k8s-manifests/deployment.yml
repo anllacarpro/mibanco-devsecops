@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
       - name: hola
-        image: mibancodevsecopstdb2eacr.azurecr.io/hola:dev
+        image: mibancodevsecopsacr.azurecr.io/hola:latest
         ports:
         - containerPort: 8080
         resources:
