@@ -183,8 +183,8 @@ kubectl port-forward service/hola-svc 8080:80 -n hola
 curl http://localhost:8080
 
 # Via ingress (producción)
-INGRESS_IP=$(kubectl get ingress hola-ingress -n hola -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
-curl http://app.$INGRESS_IP.nip.io
+# IP pública fija: 74.179.247.63
+curl http://74.179.247.63
 ```
 
 **Respuesta esperada**: `Hola Mibanco`
@@ -239,8 +239,8 @@ hola-app-9b5759c7b-q6lwj   1/1     Running   0          23s     10.224.0.19  aks
 ### Validación de Ingress
 ```bash
 $ kubectl get ingress -n hola -o wide
-NAME           CLASS    HOSTS                     ADDRESS        PORTS   AGE
-hola-ingress   <none>   app.4.156.246.56.nip.io   4.156.246.56   80      31m
+NAME           CLASS    HOSTS           ADDRESS          PORTS   AGE
+hola-ingress   <none>   74.179.247.63   74.179.247.63    80      31m
 ```
 
 ## 🔒 Seguridad Implementada
@@ -277,7 +277,7 @@ hola-ingress   <none>   app.4.156.246.56.nip.io   4.156.246.56   80      31m
 ---
 
 > ✅ **Estado**: Todos los requisitos del challenge completados exitosamente  
-> 🎯 **Endpoint**: `http://app.{INGRESS_IP}.nip.io` → "Hola Mibanco"  
+> 🎯 **Endpoint**: `http://74.179.247.63` → "Hola Mibanco"  
 > 👨‍💻 **Desarrollado por**: Miguel Angel Alarcon Llanos
 El pipeline CI/CD está completamente automatizado usando GitHub Actions y sigue estos pasos:
 

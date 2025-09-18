@@ -192,8 +192,8 @@ data "kubernetes_service" "nginx_ingress" { # APP
   depends_on = [helm_release.ingress_nginx]
 }
 
-# Ingress using nip.io (resolves to the controller's public IP automatically)
-# Host looks like: <ip>.nip.io
+# Ingress usando IP público directo (sin nip.io)
+# Host: 74.179.247.63
 resource "kubernetes_ingress_v1" "ing" { # APP
   metadata {
     name      = "hola-ingress"
@@ -204,7 +204,7 @@ resource "kubernetes_ingress_v1" "ing" { # APP
   }
   spec {
     rule {
-      host = "app.${data.kubernetes_service.nginx_ingress.status[0].load_balancer[0].ingress[0].ip}.nip.io"
+      host = data.kubernetes_service.nginx_ingress.status[0].load_balancer[0].ingress[0].ip
       http {
         path {
           path = "/"
