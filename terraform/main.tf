@@ -4,12 +4,15 @@
 # Challenge: Lead DevSecOps Position
 
 
+###########################
+# RECURSOS BASE (infra_base)
+###########################
 # Referencia a un resource group existente
 data "azurerm_resource_group" "rg" {
   name = var.resource_group_name
 }
 
-resource "azurerm_container_registry" "acr" {
+resource "azurerm_container_registry" "acr" { # BASE
   name                = replace("${var.project_name}acr", "-", "")
   resource_group_name = data.azurerm_resource_group.rg.name
   location            = data.azurerm_resource_group.rg.location
@@ -17,7 +20,7 @@ resource "azurerm_container_registry" "acr" {
   admin_enabled       = true
 }
 
-resource "azurerm_kubernetes_cluster" "aks" {
+resource "azurerm_kubernetes_cluster" "aks" { # BASE
   name                = "${var.project_name}-aks"
   location            = data.azurerm_resource_group.rg.location
   resource_group_name = data.azurerm_resource_group.rg.name
@@ -42,14 +45,14 @@ resource "azurerm_kubernetes_cluster" "aks" {
 }
 
 # Allow AKS kubelet to pull images from ACR
-resource "azurerm_role_assignment" "acr_pull" {
+resource "azurerm_role_assignment" "acr_pull" { # BASE
   scope                = azurerm_container_registry.acr.id
   role_definition_name = "AcrPull"
   principal_id         = azurerm_kubernetes_cluster.aks.kubelet_identity[0].object_id
 }
 
 # Install NGINX Ingress Controller via Helm
-resource "helm_release" "ingress_nginx" {
+resource "helm_release" "ingress_nginx" { # BASE
   name       = "ingress-nginx"
   repository = "https://kubernetes.github.io/ingress-nginx"
   chart      = "ingress-nginx"
@@ -65,15 +68,18 @@ resource "helm_release" "ingress_nginx" {
   wait    = true
 }
 
+#############################
+# RECURSOS APP (infra_app)
+#############################
 # Namespace for the app
-resource "kubernetes_namespace" "app" {
+resource "kubernetes_namespace" "app" { # APP
   metadata {
     name = "hola"
   }
 }
 
 # App Deployment (image pushed by CI: <acrLoginServer>/<repo>:<tag>)
-resource "kubernetes_deployment" "app" {
+resource "kubernetes_deployment" "app" { # APP
   metadata {
     name      = "hola-app"
     namespace = kubernetes_namespace.app.metadata[0].name
@@ -133,7 +139,7 @@ resource "kubernetes_deployment" "app" {
 }
 
 # Service
-resource "kubernetes_service_v1" "svc" {
+resource "kubernetes_service_v1" "svc" { # APP
   metadata {
     name      = "hola-svc"
     namespace = kubernetes_namespace.app.metadata[0].name
@@ -151,7 +157,7 @@ resource "kubernetes_service_v1" "svc" {
 }
 
 # HPA v2
-resource "kubernetes_horizontal_pod_autoscaler_v2" "hpa" {
+resource "kubernetes_horizontal_pod_autoscaler_v2" "hpa" { # APP
   metadata {
     name      = "hola-hpa"
     namespace = kubernetes_namespace.app.metadata[0].name
@@ -178,7 +184,7 @@ resource "kubernetes_horizontal_pod_autoscaler_v2" "hpa" {
 }
 
 # Get the ingress controller service to extract the external IP
-data "kubernetes_service" "nginx_ingress" {
+data "kubernetes_service" "nginx_ingress" { # APP
   metadata {
     name      = "ingress-nginx-controller"
     namespace = "ingress-nginx"
@@ -188,7 +194,7 @@ data "kubernetes_service" "nginx_ingress" {
 
 # Ingress using nip.io (resolves to the controller's public IP automatically)
 # Host looks like: <ip>.nip.io
-resource "kubernetes_ingress_v1" "ing" {
+resource "kubernetes_ingress_v1" "ing" { # APP
   metadata {
     name      = "hola-ingress"
     namespace = kubernetes_namespace.app.metadata[0].name
