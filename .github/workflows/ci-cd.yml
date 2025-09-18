@@ -243,7 +243,7 @@ jobs:
           if [ -n "$INGRESS_IP" ]; then
             echo "Testing with Ingress IP: $INGRESS_IP"
             for i in {1..5}; do
-              if curl -f "http://app.$INGRESS_IP.nip.io/" --max-time 10; then
+              if curl -f "http://$INGRESS_IP/" --max-time 10; then
                 echo ""
                 echo "✅ Application is responding correctly!"
                 break
