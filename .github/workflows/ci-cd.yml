@@ -138,7 +138,7 @@ jobs:
   # Kubernetes deployment using manifests
   deploy:
     if: github.ref == 'refs/heads/main' # Only deploy from main branch
-    needs: [build, infrastructure]
+    needs: [infra_app, build]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
