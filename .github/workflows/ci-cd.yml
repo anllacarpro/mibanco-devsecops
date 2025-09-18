@@ -49,6 +49,17 @@ jobs:
             -var="image_tag=${{ github.sha }}" \
             -var="resource_group_name=${{ env.RESOURCE_GROUP }}"
 
+
+      - name: Terraform Import ACR if needed
+        working-directory: ${{ env.TF_WORKDIR }}
+        run: |
+          if ! terraform state show azurerm_container_registry.acr > /dev/null 2>&1; then
+            echo "Importando ACR existente al estado de Terraform..."
+            terraform import azurerm_container_registry.acr "/subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/${{ env.RESOURCE_GROUP }}/providers/Microsoft.ContainerRegistry/registries/${{ env.AZURE_CONTAINER_REGISTRY%%.azurecr.io }}"
+          else
+            echo "ACR ya gestionado por Terraform."
+          fi
+
       - name: Terraform Apply (infra base)
         working-directory: ${{ env.TF_WORKDIR }}
         run: |
