@@ -14,7 +14,7 @@ env:
   TF_WORKDIR: ./terraform
   IMAGE_NAME: hola
   LOCATION: eastus
-  AZURE_CONTAINER_REGISTRY: mibancodevsecopstdb2eacr.azurecr.io
+  AZURE_CONTAINER_REGISTRY: mibancodevsecopsacr.azurecr.io
   RESOURCE_GROUP: mibanco-devsecops-tdb2e-rg
   CLUSTER_NAME: mibanco-devsecops-tdb2e-aks
 
