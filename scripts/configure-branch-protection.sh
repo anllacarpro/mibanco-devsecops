@@ -3,7 +3,7 @@
 # Script to configure GitHub branch protection for trunk-based development
 # This implements the required pull request approvals for the challenge
 
-REPO_OWNER="your-github-username"
+REPO_OWNER="anllacarpro"
 REPO_NAME="mibanco-devsecops"
 
 echo "Configuring branch protection rules for trunk-based development..."
